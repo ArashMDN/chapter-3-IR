@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide: Dictionaries & Tolerant Retrieval</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Dictionary Structures: HTML/CSS diagram for B-Tree concept. Interactive HTML table for Hash Table vs. B-Tree comparison. Goal: Compare, Organize. Interaction: Click to expand details. Justification: Clear visual summary of differences. Chart.js bar chart for conceptual comparison of lookup times.
+        - Wildcard Queries: Input fields for users to type terms/queries and see permuterms, k-grams, or query transformations. Goal: Inform, Experiment. Interaction: Real-time generation of examples. Justification: Hands-on understanding of transformations. Interactive HTML table for Permuterm vs. K-gram.
+        - Spelling Correction: Interactive scenarios for correction principles (nearest/common). Step-by-step display for Edit Distance (simplified). K-gram overlap visualization. Contextual error examples with click-to-reveal. Goal: Inform, Experiment. Interaction: User input, guided examples. Justification: Clarify abstract concepts with concrete interactions.
+        - Phonetic Correction (Soundex): Step-by-step interactive Soundex calculator. HTML table for Soundex rules. Goal: Inform, Experiment. Interaction: User inputs name, sees process. Justification: Demystify the algorithm.
+        - All information is sourced from the provided PDF (Information Retrieval Presentation). No external data is used. Visualizations are HTML/CSS based, simple text outputs from JS logic, or Chart.js for comparisons.
+        -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .interactive-area { border: 1px solid #e2e8f0; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; background-color: #f8fafc; }
+        .code-output { background-color: #1e293b; color: #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.375rem; font-family: monospace; white-space: pre-wrap; margin-top: 0.5rem; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        
+        /* B-Tree specific styling */
+        .b-tree-node { 
+            background-color: #bae6fd; /* Tailwind sky-200 */
+            border: 1px solid #7dd3fc; /* Tailwind sky-300 */
+            border-radius: 4px; 
+            text-align: center; 
+            margin: 5px; 
+            display: inline-block; 
+            /* Responsive padding and text size for B-Tree nodes */
+            padding: 4px 8px; /* Smaller padding for mobile */
+            font-size: 0.75rem; /* Smaller text for mobile (text-xs) */
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .b-tree-node {
+                padding: 8px 12px; /* Default padding for sm and up */
+                font-size: 0.875rem; /* Default text size for sm and up (text-sm) */
+            }
+        }
+        .b-tree-link { border-left: 1px solid #9ca3af; border-right: 1px solid #9ca3af; border-bottom: 1px solid #9ca3af; height: 20px; width: 50%; margin: 0 auto; }
+        .b-tree-children { display: flex; justify-content: space-around; }
+        .nav-btn.active-nav { background-color: #0369a1; /* sky-700 */ color: white; } /* More specific active class for nav buttons */
+        .comparison-table th, .comparison-table td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-sky-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
+            <h1 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-0 text-center sm:text-left">Interactive Guide: Dictionaries & Tolerant Retrieval</h1>
+            <nav class="flex flex-col sm:flex-row sm:space-x-1 space-y-1 sm:space-y-0 w-full sm:w-auto">
+                <button class="nav-btn w-full sm:w-auto text-center px-3 py-2 rounded-md text-sm font-medium hover:bg-sky-600 focus:outline-none focus:bg-sky-600" data-target="intro">Introduction</button>
+                <button class="nav-btn w-full sm:w-auto text-center px-3 py-2 rounded-md text-sm font-medium hover:bg-sky-600 focus:outline-none focus:bg-sky-600" data-target="dictionaries">Dictionaries</button>
+                <button class="nav-btn w-full sm:w-auto text-center px-3 py-2 rounded-md text-sm font-medium hover:bg-sky-600 focus:outline-none focus:bg-sky-600" data-target="wildcards">Wildcards</button>
+                <button class="nav-btn w-full sm:w-auto text-center px-3 py-2 rounded-md text-sm font-medium hover:bg-sky-600 focus:outline-none focus:bg-sky-600" data-target="spelling">Spelling Correction</button>
+                <button class="nav-btn w-full sm:w-auto text-center px-3 py-2 rounded-md text-sm font-medium hover:bg-sky-600 focus:outline-none focus:bg-sky-600" data-target="phonetic">Phonetic Correction</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6">
+        <section id="intro" class="content-section active">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-700 mb-4">Welcome!</h2>
+            <p class="mb-4 text-base sm:text-lg">This interactive guide is designed to help you understand key concepts in Information Retrieval, specifically focusing on Dictionaries and Tolerant Retrieval techniques. These are crucial for building search systems that are both efficient and forgiving of user input variations.</p>
+            <p class="mb-4 text-base sm:text-lg">Navigate through the sections using the buttons in the header. Each section will explain core ideas from your presentation slides and provide interactive exercises or simulations to reinforce your learning. The goal is to make these complex topics more tangible and easier to grasp for your exam preparation.</p>
+            <div class="bg-sky-100 border-l-4 border-sky-500 text-sky-700 p-4 mt-6 rounded-md" role="alert">
+                <p class="font-bold">How to Use This Guide:</p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Click on the navigation buttons to switch between topics.</li>
+                    <li>Read the explanations derived from your course material.</li>
+                    <li>Engage with the interactive elements (input fields, buttons, simulations) to see concepts in action.</li>
+                    <li>Review the comparison tables and examples to solidify your understanding.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="dictionaries" class="content-section">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-700 mb-6">1. Dictionaries in Information Retrieval</h2>
+            <p class="mb-4">In IR, a dictionary (or vocabulary/lexicon) is a search structure that stores all unique terms from a document collection. Its main jobs are to check if a query term exists and, if so, to provide a pointer to its postings list. For each term, the dictionary typically stores its <strong>Document Frequency (DF)</strong> and a <strong>pointer to the postings list</strong> (Source: PDF p2).</p>
+            
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">Hash Tables</h3>
+                    <p class="mb-2 text-sm sm:text-base">Hash tables map vocabulary terms to integer indices using a hash function. (PDF p3)</p>
+                    <ul class="list-disc list-inside mb-2 text-sm sm:text-base">
+                        <li><strong>Pros:</strong> Typically $O(1)$ average lookup time.</li>
+                        <li><strong>Cons:</strong> Requires periodic rehashing for growing vocabularies (inefficient), no direct support for prefix/range searches.</li>
+                    </ul>
+                    <div class="interactive-area">
+                        <label for="hash-term" class="block text-sm font-medium text-slate-700">Enter a term to simulate hashing:</label>
+                        <input type="text" id="hash-term" placeholder="e.g., retrieval">
+                        <button id="hash-simulate-btn">Simulate Hash</button>
+                        <div id="hash-output" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">Search Trees (e.g., B-Trees)</h3>
+                    <p class="mb-2 text-sm sm:text-base">Search trees organize terms hierarchically. Balanced trees (like B-Trees) are commonly used. (PDF p4)</p>
+                    <ul class="list-disc list-inside mb-2 text-sm sm:text-base">
+                        <li><strong>Pros:</strong> $O(log M)$ lookup, insertion, deletion (for balanced trees). Naturally support prefix/range searches. Graceful growth.</li>
+                        <li><strong>Cons:</strong> Slower average lookup than hash tables. Requires prescribed character ordering (challenging for some languages).</li>
+                    </ul>
+                    <p class="text-xs sm:text-sm mb-2">Example B-Tree Structure (Conceptual, based on PDF p5):</p>
+                    <div class="overflow-x-auto"> <div class="min-w-[280px]"> <div class="b-tree-node">Root (a-m / n-z)</div>
+                            <div class="b-tree-children">
+                                <div class="w-1/2">
+                                    <div class="b-tree-link"></div>
+                                    <div class="b-tree-node">Node (a-h / i-m)</div>
+                                     <div class="b-tree-children">
+                                        <div class="w-1/2"><div class="b-tree-link"></div><div class="b-tree-node">aardvark</div></div>
+                                        <div class="w-1/2"><div class="b-tree-link"></div><div class="b-tree-node">...</div></div>
+                                    </div>
+                                </div>
+                                <div class="w-1/2">
+                                    <div class="b-tree-link"></div>
+                                    <div class="b-tree-node">Node (n-sh / si-z)</div>
+                                    <div class="b-tree-children">
+                                        <div class="w-1/2"><div class="b-tree-link"></div><div class="b-tree-node">sickle</div></div>
+                                        <div class="w-1/2"><div class="b-tree-link"></div><div class="b-tree-node">today</div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3 mt-8">Comparison: Hash Tables vs. B-Trees</h3>
+            <p class="mb-4 text-sm sm:text-base">The following chart and table summarize the key differences between hash tables and B-Trees for dictionary implementation. This is crucial for understanding their respective trade-offs in IR systems.</p>
+            <div class="chart-container mb-6">
+                <canvas id="dictionaryPerformanceChart"></canvas>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="comparison-table w-full bg-white shadow rounded-lg text-sm sm:text-base">
+                    <thead>
+                        <tr class="bg-slate-100">
+                            <th>Feature</th>
+                            <th>Hash Table</th>
+                            <th>Search Tree (e.g., B-Tree)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Basic Mechanism</td><td>Hashing term to an integer index</td><td>Hierarchical, ordered structure</td></tr>
+                        <tr><td>Lookup Time (Average)</td><td>$O(1)$</td><td>$O(log M)$</td></tr>
+                        <tr><td>Lookup Time (Worst-case)</td><td>$O(M)$ (with many collisions)</td><td>$O(log M)$ (balanced)</td></tr>
+                        <tr><td>Scalability (Vocab Growth)</td><td>Requires periodic, expensive rehashing</td><td>Graceful growth with rebalancing</td></tr>
+                        <tr><td>Prefix/Range Searches</td><td>No inherent support</td><td>Naturally supports</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="wildcards" class="content-section">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-700 mb-6">2. Wildcard Queries</h2>
+            <p class="mb-4 text-sm sm:text-base">Wildcard queries (using `*` or `?`) allow users to search for term variations. They are used when: (PDF p6)</p>
+            <ul class="list-disc list-inside mb-4 pl-5 text-sm sm:text-base">
+                <li>User is uncertain of spelling (e.g., `S*dney`).</li>
+                <li>User seeks variants of a term (e.g., `colo*r`).</li>
+                <li>System lacks stemming, and user wants to find related forms (e.g., `comput*`).</li>
+            </ul>
+            <p class="mb-4 text-sm sm:text-base">Types of wildcard queries include trailing (`mon*`), leading (`*mon`), and embedded (`m*n`). Processing complex wildcards can be resource-intensive.</p>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">Permuterm Indexes</h3>
+                    <p class="mb-2 text-sm sm:text-base">Transforms wildcard queries into prefix queries. For a term `T`, append `$` (e.g., `hello$`) and store all rotations (e.g., `hello$`, `ello$h`, ..., `$hello`) in a B-Tree. (PDF p7-8)</p>
+                    <p class="mb-2 text-sm sm:text-base">Query `X*Y` becomes `Y$X*`, then search for prefix `Y$X`.</p>
+                    <div class="interactive-area">
+                        <label for="permuterm-term" class="block text-sm font-medium text-slate-700">Enter a term to see its permuterms:</label>
+                        <input type="text" id="permuterm-term" placeholder="e.g., castle">
+                        <button id="permuterm-generate-btn">Generate Permuterms</button>
+                        <div id="permuterm-output" class="mt-2 text-xs sm:text-sm code-output"></div>
+                        <label for="permuterm-query" class="block text-sm font-medium text-slate-700 mt-3">Enter a wildcard query (e.g., m*n, *net):</label>
+                        <input type="text" id="permuterm-query" placeholder="e.g., m*n">
+                        <button id="permuterm-query-btn">Transform Query</button>
+                        <div id="permuterm-query-output" class="mt-2 text-xs sm:text-sm"></div>
+                    </div>
+                    <p class="mt-3 text-xs sm:text-sm text-red-600"><strong>Drawback:</strong> Significant storage increase (almost 10x for English). (PDF p8)</p>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">K-gram Indexes</h3>
+                    <p class="mb-2 text-sm sm:text-base">Break terms into k-grams (sequences of k characters). E.g., for 3-grams of `$castle$`: `$ca, cas, ast, stl, tle, le$`. An index maps k-grams to terms containing them. (PDF p9-10)</p>
+                    <p class="mb-2 text-sm sm:text-base">Query `re*ve` might look for terms with `$re` AND `ve$`. (PDF p9)</p>
+                     <div class="interactive-area">
+                        <label for="kgram-term" class="block text-sm font-medium text-slate-700">Enter a term to see its 3-grams (padded with $):</label>
+                        <input type="text" id="kgram-term" placeholder="e.g., search">
+                        <button id="kgram-generate-btn">Generate 3-grams</button>
+                        <div id="kgram-output" class="mt-2 text-xs sm:text-sm code-output"></div>
+                    </div>
+                    <p class="mt-3 text-xs sm:text-sm text-red-600"><strong>Drawbacks:</strong> Can generate false positives (e.g., `red*` might retrieve `retired`). Requires post-filtering, which can be expensive. (PDF p10)</p>
+                </div>
+            </div>
+             <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3 mt-8">Comparison: Permuterm vs. K-gram Indexes</h3>
+            <div class="overflow-x-auto">
+                <table class="comparison-table w-full bg-white shadow rounded-lg text-sm sm:text-base">
+                    <thead><tr class="bg-slate-100"><th>Feature</th><th>Permuterm Index</th><th>K-gram Index</th></tr></thead>
+                    <tbody>
+                        <tr><td>Mechanism</td><td>Rotate `term$` to create multiple entries; convert wildcard query to prefix query.</td><td>Break terms and queries into k-grams; find terms sharing query's k-grams.</td></tr>
+                        <tr><td>Query Example</td><td>`m*n` -> `n$m*`; search prefix `n$m`.</td><td>`re*ve` -> `$re` AND `ve$`; intersect lists, then post-filter.</td></tr>
+                        <tr><td>Advantages</td><td>Handles all single wildcard types systematically.</td><td>More space-efficient (potentially); flexible `k`.</td></tr>
+                        <tr><td>Disadvantages</td><td>Very large storage increase (~10x).</td><td>False positives requiring expensive post-filtering; choice of `k` is crucial.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="spelling" class="content-section">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-700 mb-6">3. Spelling Correction</h2>
+            <p class="mb-4 text-sm sm:text-base">Aims to correct typos (e.g., `carot` -> `carrot`). Key principles: (PDF p11)</p>
+            <ul class="list-disc list-inside mb-4 pl-5 text-sm sm:text-base">
+                <li><strong>Choose the "nearest" one:</strong> Smallest edit distance.</li>
+                <li><strong>If tied, choose the more common one:</strong> Higher Document Frequency (DF) or query frequency. (e.g., `grnt` -> `grant` or `grunt`).</li>
+            </ul>
+
+            <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">Strategies for Implementation (PDF p12)</h3>
+            <ul class="list-disc list-inside mb-4 pl-5 text-sm sm:text-base">
+                <li>Correct if original term is not in dictionary.</li>
+                <li>Correct if DF of original term is low (e.g., < 5).</li>
+                <li>Correct if original query returns few results (e.g., < N).</li>
+                <li>Always retrieve for original AND suggest corrections.</li>
+            </ul>
+            
+            <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3 mt-6">Forms of Spelling Correction (PDF p13)</h3>
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h4 class="text-md sm:text-lg font-semibold text-sky-600 mb-2">Isolated-Term Correction</h4>
+                    <p class="mb-2 text-sm sm:text-base">Corrects individual terms without considering context.</p>
+                    <p class="mb-1 text-sm sm:text-base"><strong>Edit Distance (Levenshtein):</strong> Min. single-char edits (insert, delete, replace) to change s1 to s2. (PDF p14)</p>
+                    <div class="interactive-area mb-3">
+                        <label for="edit-s1" class="block text-sm font-medium">String 1:</label>
+                        <input type="text" id="edit-s1" value="flaw">
+                        <label for="edit-s2" class="block text-sm font-medium mt-2">String 2:</label>
+                        <input type="text" id="edit-s2" value="lawn">
+                        <button id="edit-distance-btn">Calculate Edit Distance</button>
+                        <div id="edit-distance-output" class="mt-2 text-xs sm:text-sm"></div>
+                    </div>
+                    <p class="mb-1 text-sm sm:text-base"><strong>K-gram Overlap:</strong> Find dictionary terms sharing many k-grams with the misspelled term. (PDF p15)</p>
+                     <div class="interactive-area">
+                        <label for="kgram-spell-term" class="block text-sm font-medium">Misspelled term (for bigram overlap):</label>
+                        <input type="text" id="kgram-spell-term" value="accomodate">
+                        <button id="kgram-overlap-btn">Show Bigrams & Potential Match</button>
+                        <div id="kgram-overlap-output" class="mt-2 text-xs sm:text-sm"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                    <h4 class="text-md sm:text-lg font-semibold text-sky-600 mb-2">Context-Sensitive Correction</h4>
+                    <p class="mb-2 text-sm sm:text-base">Uses surrounding words to correct errors, even if words are individually correct. (PDF p16)</p>
+                    <p class="mb-2 text-sm sm:text-base">Example: "Flew <span class='font-bold text-red-500'>form</span> Heathrow" -> "Flew <span class='font-bold text-emerald-500'>from</span> Heathrow".</p>
+                    <p class="mb-2 text-red-600 text-sm sm:text-base"><strong>Challenge:</strong> Combinatorial explosion of alternatives. If a 3-word query has 7, 20, and 3 alternatives for each word respectively, that's $7 \times 20 \times 3 = 420$ phrases to check! (PDF p16)</p>
+                    <div class="interactive-area">
+                        <p class="mb-2 text-sm sm:text-base">Consider the query: "book a flight <span class='font-bold text-red-500'>too</span> London"</p>
+                        <p class="text-xs sm:text-sm">If 'too' has 3 alternatives (to, two, too) and 'London' has 2 (London, Landon), how many combinations?</p>
+                        <button id="context-combo-btn">Calculate Combinations</button>
+                        <div id="context-combo-output" class="mt-2 text-xs sm:text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="phonetic" class="content-section">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-700 mb-6">4. Phonetic Correction</h2>
+            <p class="mb-4 text-sm sm:text-base">Addresses queries that sound like the target term but may be spelled differently. Especially useful for names. The main idea is **phonetic hashing**: similar-sounding terms hash to the same value. (PDF p17)</p>
+
+            <h3 class="text-lg sm:text-xl font-semibold text-sky-600 mb-3">Soundex Algorithm (PDF p18-20)</h3>
+            <p class="mb-2 text-sm sm:text-base">A classic phonetic algorithm for English names. Produces a 4-character code (Letter + 3 Digits).</p>
+            <p class="mb-1 text-sm sm:text-base"><strong>Rules:</strong></p>
+            <ol class="list-decimal list-inside mb-3 pl-5 text-xs sm:text-sm">
+                <li>Retain the first letter.</li>
+                <li>Change other letters to digits (see table below).</li>
+                <li>Remove consecutive identical digits.</li>
+                <li>Remove all zeros (from vowels, H, W, Y).</li>
+                <li>Pad with '0's or truncate to make code 4 characters long.</li>
+            </ol>
+            <div class="overflow-x-auto mb-4">
+                <table class="comparison-table w-full md:w-1/2 mx-auto bg-white shadow rounded-lg text-xs sm:text-sm">
+                    <thead><tr class="bg-slate-100"><th>Letters</th><th>Digit</th></tr></thead>
+                    <tbody>
+                        <tr><td>A, E, I, O, U, H, W, Y</td><td>0</td></tr>
+                        <tr><td>B, F, P, V</td><td>1</td></tr>
+                        <tr><td>C, G, J, K, Q, S, X, Z</td><td>2</td></tr>
+                        <tr><td>D, T</td><td>3</td></tr>
+                        <tr><td>L</td><td>4</td></tr>
+                        <tr><td>M, N</td><td>5</td></tr>
+                        <tr><td>R</td><td>6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="interactive-area bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <label for="soundex-name" class="block text-sm font-medium text-slate-700">Enter a name to calculate its Soundex code:</label>
+                <input type="text" id="soundex-name" placeholder="e.g., Hermann, Roberts, Pfister">
+                <button id="soundex-calculate-btn">Calculate Soundex</button>
+                <div id="soundex-steps-output" class="mt-3 text-xs"></div>
+                <div id="soundex-output" class="mt-2 text-base sm:text-lg font-semibold code-output"></div>
+                <p class="text-xs mt-2">Example from PDF: Hermann -> H065055 -> H06505 (remove consecutive 5s) -> H655 (remove 0s) -> H655.</p>
+                <p class="text-xs mt-1">Mohammad -> M530, Mehmet -> M530.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 text-slate-600 text-sm border-t border-slate-200 mt-12">
+        Interactive IR Guide &copy;. Made by Arash Maadani.
+    </footer>
+
+<script>
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const contentSections = document.querySelectorAll('.content-section');
+    const firstNavButton = document.querySelector('.nav-btn'); // For default active state
+
+    function showSection(targetId) {
+        contentSections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === targetId) {
+                section.classList.add('active');
+            }
+        });
+        navButtons.forEach(btn => {
+            btn.classList.remove('active-nav'); // Use the more specific active class
+            if(btn.dataset.target === targetId) {
+                 btn.classList.add('active-nav');
+            }
+        });
+    }
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            const targetId = e.currentTarget.dataset.target;
+            showSection(targetId);
+        });
+    });
+    
+    // Set initial active section and button
+    if (firstNavButton) {
+        showSection('intro'); // Show intro by default
+        firstNavButton.classList.add('active-nav');
+    }
+
+
+    // Dictionary Simulations
+    document.getElementById('hash-simulate-btn').addEventListener('click', () => {
+        const term = document.getElementById('hash-term').value;
+        const outputDiv = document.getElementById('hash-output');
+        if (!term) {
+            outputDiv.innerHTML = "<p class='text-red-500'>Please enter a term.</p>";
+            return;
+        }
+        // Simple pseudo-hash function for demonstration
+        let hashValue = 0;
+        for (let i = 0; i < term.length; i++) {
+            hashValue = (hashValue * 31 + term.charCodeAt(i)) % 1000; // Modulo for a small table size
+        }
+        outputDiv.innerHTML = `<p>Term: "${term}"</p><p>Simulated Hash Value: ${hashValue}</p><p class='text-xs text-slate-500'>(This is a simplified hash for illustration only)</p>`;
+    });
+
+    // Wildcard Simulations
+    document.getElementById('permuterm-generate-btn').addEventListener('click', () => {
+        let term = document.getElementById('permuterm-term').value;
+        const outputDiv = document.getElementById('permuterm-output');
+        if (!term) {
+            outputDiv.textContent = "Please enter a term.";
+            return;
+        }
+        term = term + "$";
+        const permuterms = [];
+        for (let i = 0; i < term.length; i++) {
+            permuterms.push(term.substring(i) + term.substring(0, i));
+        }
+        outputDiv.textContent = permuterms.join('\n');
+    });
+
+    document.getElementById('permuterm-query-btn').addEventListener('click', () => {
+        const query = document.getElementById('permuterm-query').value;
+        const outputDiv = document.getElementById('permuterm-query-output');
+        if (!query || !query.includes('*')) {
+            outputDiv.textContent = "Please enter a valid wildcard query (e.g., m*n, *X, X*).";
+            return;
+        }
+        
+        let processedQuery = query;
+        let explanation = "";
+
+        if (query.startsWith('*') && query.endsWith('*') && query.length > 2) { // *X*
+             const middle = query.substring(1, query.length -1);
+             processedQuery = middle + "$**"; 
+             explanation = `For query *X*, transformed to X$*. For *X*Y*, it's more complex. A simple approach for *${middle}* could be searching for permuterms of ${middle}$ that match this pattern, or just ${middle} if it's a substring search. The transformation ${processedQuery} aims to find ${middle}$ at the start of a rotation.`;
+        } else if (query.startsWith('*') && query.length > 1) { // *X
+            processedQuery = query.substring(1) + "$*";
+            explanation = `Query ${query} (leading wildcard) is transformed to ${processedQuery}. Search for prefix '${query.substring(1)}$' in permuterm index.`;
+        } else if (query.endsWith('*') && query.length > 1) { // X*
+            // For X*, the original term is already a prefix. Permuterm would be X$*
+            processedQuery = query + "$"; // This is the item in permuterm index (X$ rotated)
+            explanation = `Query ${query} (trailing wildcard). Search for prefix '${query.substring(0, query.length -1)}' in standard B-Tree or '${query}$' in permuterm index (after rotating X$ to itself). The direct transformation for permuterm lookup is ${query.substring(0, query.length-1)}$*.`;
+            // To be consistent with X*Y -> Y$X*, for X*, it would be $X*
+            // Let's stick to the PDF's X*Y -> Y$X* logic.
+            // If query is X*, it means X*epsilon. So, epsilon$X* -> $X*
+             processedQuery = "$" + query.substring(0, query.length - 1) + "*";
+             explanation = `Query ${query} (trailing wildcard) transformed to ${processedQuery} for permuterm search. (Rotated form of ${query.substring(0, query.length-1)}$ is what we'd match against).`;
+
+
+        } else if (query.includes('*') && query.length > 1 && query.indexOf('*') > 0 && query.indexOf('*') < query.length -1) { // X*Y
+            const parts = query.split('*');
+            if (parts.length === 2 && parts[0] && parts[1]) { // Ensure X and Y are not empty
+                 processedQuery = parts[1] + "$" + parts[0] + "*";
+                 explanation = `Query ${query} (embedded wildcard) transformed to ${processedQuery}. Search for prefix '${parts[1]}${parts[0]}' in permuterm index.`;
+            } else {
+                explanation = `Complex or invalid query: ${query}. Example X*Y transformation applies if X and Y are non-empty. Multiple wildcards like fi*mo*er are typically handled by breaking into parts (e.g., fi* AND *mo* AND *er) or simplifying (e.g., fi*er -> er$fi*).`;
+                processedQuery = "N/A for this complex pattern via simple rule";
+            }
+        } else {
+             explanation = `Query ${query} is too short or not a standard wildcard pattern for this simple transformer.`;
+             processedQuery = "N/A";
+        }
+        outputDiv.textContent = `Original Query: ${query}\nTransformed for Permuterm Search: ${processedQuery}\nExplanation: ${explanation}`;
+    });
+
+
+    document.getElementById('kgram-generate-btn').addEventListener('click', () => {
+        let term = document.getElementById('kgram-term').value;
+        const outputDiv = document.getElementById('kgram-output');
+        if (!term) {
+            outputDiv.textContent = "Please enter a term.";
+            return;
+        }
+        term = "$" + term + "$";
+        const kgrams = [];
+        const k = 3; // Typically 3-grams (trigrams)
+        if (term.length < k) {
+            // If term (with padding) is shorter than k, the k-gram is the term itself.
+            // However, standard k-gram generation usually requires length >= k.
+            // For consistency, let's say if padded term is < k, no standard k-grams are formed,
+            // or it depends on specific system implementation.
+            // The PDF example $ca for 'castle' with k=3 implies padding helps form k-grams.
+            // If term is "a", padded "$a$", k=3. "$a$" is one 3-gram.
+             kgrams.push(term);
+
+        } else {
+            for (let i = 0; i <= term.length - k; i++) {
+                kgrams.push(term.substring(i, i + k));
+            }
+        }
+        outputDiv.textContent = kgrams.join('\n');
+    });
+
+    // Spelling Correction Simulations
+    function levenshteinDistance(s1, s2) {
+        const m = s1.length;
+        const n = s2.length;
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(null));
+
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+        for (let j = 1; j <= n; j++) {
+            for (let i = 1; i <= m; i++) {
+                const substitutionCost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,                         // deletion
+                    dp[i][j - 1] + 1,                         // insertion
+                    dp[i - 1][j - 1] + substitutionCost      // substitution
+                );
+            }
+        }
+        return dp[m][n];
+    }
+
+    document.getElementById('edit-distance-btn').addEventListener('click', () => {
+        const s1 = document.getElementById('edit-s1').value;
+        const s2 = document.getElementById('edit-s2').value;
+        const outputDiv = document.getElementById('edit-distance-output');
+        if (!s1 || !s2) {
+            outputDiv.innerHTML = "<p class='text-red-500'>Please enter both strings.</p>";
+            return;
+        }
+        const distance = levenshteinDistance(s1, s2);
+        outputDiv.innerHTML = `<p>Levenshtein distance between "${s1}" and "${s2}" is: <strong>${distance}</strong></p>`;
+    });
+    
+    document.getElementById('kgram-overlap-btn').addEventListener('click', () => {
+        const term = document.getElementById('kgram-spell-term').value;
+        const outputDiv = document.getElementById('kgram-overlap-output');
+        if (!term) {
+            outputDiv.innerHTML = "<p class='text-red-500'>Please enter a term.</p>";
+            return;
+        }
+        const k = 2; // bigrams
+        const termBigrams = [];
+        // Add padding for k-gram generation as per typical use in spelling
+        const paddedTerm = "$" + term + "$";
+
+        if (paddedTerm.length >= k) {
+            for (let i = 0; i <= paddedTerm.length - k; i++) {
+                termBigrams.push(paddedTerm.substring(i, i + k));
+            }
+        }
+        
+        let exampleCorrect = "accommodate"; 
+        const paddedCorrect = "$" + exampleCorrect + "$";
+        const correctBigrams = [];
+         if (paddedCorrect.length >= k) {
+            for (let i = 0; i <= paddedCorrect.length - k; i++) {
+                correctBigrams.push(paddedCorrect.substring(i, i + k));
+            }
+        }
+        const sharedBigrams = termBigrams.filter(bg => correctBigrams.includes(bg));
+        const jaccard = sharedBigrams.length / (termBigrams.length + correctBigrams.length - sharedBigrams.length);
+
+
+        outputDiv.innerHTML = `<p>Padded misspelled term: "${paddedTerm}"</p>
+                               <p>Its bigrams: ${termBigrams.join(', ')} (Count: ${termBigrams.length})</p>
+                               <p>Padded example correct term: "${paddedCorrect}"</p>
+                               <p>Its bigrams: ${correctBigrams.join(', ')} (Count: ${correctBigrams.length})</p>
+                               <p>Shared bigrams: <strong class='text-emerald-600'>${sharedBigrams.join(', ')}</strong> (Count: ${sharedBigrams.length})</p>
+                               <p>Jaccard Coefficient: ${jaccard.toFixed(3)} (A higher Jaccard index, e.g., > 0.6-0.8, suggests similarity. PDF p15 mentions threshold, e.g. 0.8)</p>`;
+    });
+
+    document.getElementById('context-combo-btn').addEventListener('click', () => {
+        // Query: "book a flight too London"
+        // Alternatives: book(1), a(1), flight(1), too(3), London(2)
+        const combinations = 1 * 1 * 1 * 3 * 2;
+        document.getElementById('context-combo-output').innerHTML = `<p>Total combinations to check: 1 (book) x 1 (a) x 1 (flight) x 3 (too/to/two) x 2 (London/Landon) = <strong>${combinations}</strong></p>`;
+    });
+
+
+    // Phonetic Correction - Soundex
+    const soundexMapping = {
+        'A': 0, 'E': 0, 'I': 0, 'O': 0, 'U': 0, 'H': 0, 'W': 0, 'Y': 0,
+        'B': 1, 'F': 1, 'P': 1, 'V': 1,
+        'C': 2, 'G': 2, 'J': 2, 'K': 2, 'Q': 2, 'S': 2, 'X': 2, 'Z': 2,
+        'D': 3, 'T': 3,
+        'L': 4,
+        'M': 5, 'N': 5,
+        'R': 6
+    };
+
+    document.getElementById('soundex-calculate-btn').addEventListener('click', () => {
+        const nameInput = document.getElementById('soundex-name').value;
+        const stepsOutputDiv = document.getElementById('soundex-steps-output');
+        const finalOutputDiv = document.getElementById('soundex-output');
+        
+        stepsOutputDiv.innerHTML = ""; 
+
+        if (!nameInput.match(/^[a-zA-Z]+$/)) {
+            finalOutputDiv.textContent = "Please enter a name with only letters.";
+            stepsOutputDiv.innerHTML = "<p class='text-red-500'>Invalid input. Only letters are allowed.</p>";
+            return;
+        }
+        const name = nameInput.toUpperCase();
+
+
+        let steps = [];
+        
+        // 1. Retain first letter
+        let soundexCode = name[0];
+        steps.push(`1. Retain first letter: <strong>${soundexCode}</strong>`);
+
+        // 2. Change other letters to digits
+        let mappedDigits = "";
+        let originalCharsForDigits = name.substring(1);
+        for (let i = 0; i < originalCharsForDigits.length; i++) {
+            let char = originalCharsForDigits[i];
+            mappedDigits += soundexMapping[char] !== undefined ? soundexMapping[char] : ''; // Ignore non-mappable chars, though input validation should prevent this
+        }
+        steps.push(`2. Convert remaining letters to digits: ${originalCharsForDigits} -> ${mappedDigits.split('').join(' ')} (Code so far: ${soundexCode}${mappedDigits})`);
+        
+        // 3. Remove consecutive identical digits (considering original letters for H,W rule - simplified here as per PDF example flow)
+        // PDF Hermann example: H E R M A N N -> H 0 6 5 0 5 5. Then H06505 (remove consecutive 5s from NN).
+        // This implies processing digits from mapped codes directly.
+        let processedDigitsStep3 = "";
+        if (mappedDigits.length > 0) {
+            processedDigitsStep3 = mappedDigits[0];
+            for(let i=1; i < mappedDigits.length; i++) {
+                // Standard Soundex: if code(char) == code(prev_char_in_original_string_not_h_or_w) then skip.
+                // Simplified: if digit[i] == digit[i-1] in the numeric string, skip.
+                // The PDF example "Hermann -> H065055 -> H06505" implies direct numeric string processing for this step.
+                if(mappedDigits[i] !== mappedDigits[i-1]) {
+                    processedDigitsStep3 += mappedDigits[i];
+                }
+            }
+        }
+        steps.push(`3. Remove consecutive identical digits (from numeric string): ${mappedDigits} -> ${processedDigitsStep3} (Code so far: ${soundexCode}${processedDigitsStep3})`);
+        
+        // 4. Remove all zeros (vowel codes)
+        let noZerosDigits = processedDigitsStep3.replace(/0/g, '');
+        steps.push(`4. Remove all zeros (vowel/h/w/y codes): ${processedDigitsStep3} -> ${noZerosDigits} (Code so far: ${soundexCode}${noZerosDigits})`);
+
+        let currentFullCode = soundexCode + noZerosDigits;
+
+        // 5. Pad or truncate
+        if (currentFullCode.length > 4) {
+            currentFullCode = currentFullCode.substring(0, 4);
+            steps.push(`5. Truncate to 4 characters: <strong>${currentFullCode}</strong>`);
+        } else {
+            while (currentFullCode.length < 4) {
+                currentFullCode += "0";
+            }
+            steps.push(`5. Pad with zeros to 4 characters: <strong>${currentFullCode}</strong>`);
+        }
+        
+        stepsOutputDiv.innerHTML = steps.map(step => `<p class="text-xs mb-1">${step}</p>`).join('');
+        finalOutputDiv.textContent = currentFullCode;
+    });
+
+    // Chart.js example
+    const ctxPerformance = document.getElementById('dictionaryPerformanceChart');
+    if (ctxPerformance) {
+        new Chart(ctxPerformance, {
+            type: 'bar',
+            data: {
+                labels: ['Hash Table (Avg)', 'B-Tree (Avg/Worst)', 'Hash Table (Worst)'],
+                datasets: [{
+                    label: 'Conceptual Lookup Time Complexity',
+                    data: [1, Math.log(1000000), 1000000], // O(1), O(logM), O(M) - M is illustrative
+                    backgroundColor: [
+                        'rgba(56, 189, 248, 0.6)', // sky-400
+                        'rgba(16, 185, 129, 0.6)', // emerald-500
+                        'rgba(239, 68, 68, 0.6)' // red-500
+                    ],
+                    borderColor: [
+                        'rgba(56, 189, 248, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        type: 'logarithmic', 
+                        title: { display: true, text: 'Relative Operations (Log Scale)' }
+                    }
+                },
+                plugins: {
+                    title: { display: true, text: 'Dictionary Lookup Performance (Conceptual)' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    if (context.label === 'Hash Table (Avg)') label += 'O(1)';
+                                    else if (context.label === 'B-Tree (Avg/Worst)') label += 'O(log M)';
+                                    else if (context.label === 'Hash Table (Worst)') label += 'O(M)';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // Add common styles to input and buttons for consistency and responsiveness
+    document.querySelectorAll('input[type="text"], .interactive-area button').forEach(el => {
+        if (el.tagName === 'INPUT') {
+            el.classList.add('mt-1', 'block', 'w-full', 'px-3', 'py-2', 'bg-white', 'border', 'border-slate-300', 'rounded-md', 'text-sm', 'shadow-sm', 'placeholder-slate-400', 'focus:outline-none', 'focus:border-sky-500', 'focus:ring-1', 'focus:ring-sky-500');
+        } else if (el.tagName === 'BUTTON' && !el.classList.contains('nav-btn')) { // Ensure nav-btn are not re-styled here
+             el.classList.add('w-full', 'sm:w-auto', 'mt-2', 'bg-sky-600', 'hover:bg-sky-700', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-md', 'text-sm', 'transition', 'duration-150', 'ease-in-out');
+        }
+    });
+
+</script>
+</body>
+</html>
